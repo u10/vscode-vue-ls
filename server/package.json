@@ -1,0 +1,28 @@
+{
+  "name": "vscode-html-languageserver",
+  "description": "HTML language server",
+  "version": "1.0.0",
+  "author": "Microsoft Corporation",
+  "license": "MIT",
+  "engines": {
+    "node": "*"
+  },
+  "dependencies": {
+    "prettier": "^1.7.4",
+    "resolve": "^1.5.0",
+    "vscode-css-languageservice": "^2.1.11",
+    "vscode-html-languageservice": "^2.0.10",
+    "vscode-languageserver": "3.5.0-next.2",
+    "vscode-nls": "^2.0.2",
+    "vscode-uri": "^1.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^2.6.1",
+    "@types/node": "7.0.43",
+    "@types/mocha": "2.2.33"
+  },
+  "scripts": {
+    "compile": "gulp compile-extension:html-server",
+    "watch": "tsc -w"
+  }
+}

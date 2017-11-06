@@ -1,0 +1,191 @@
+{
+  "name": "vue-ls",
+  "version": "0.0.1",
+  "publisher": "vainiship",
+  "description": "A Vue Language Service Extension",
+	"icon": "asset/vue.png",
+  "aiKey": "AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217",
+  "engines": {
+    "vscode": "0.10.x"
+  },
+  "activationEvents": [
+    "onLanguage:vue"
+  ],
+  "enableProposedApi": true,
+  "main": "./client/out/vueMain",
+  "scripts": {
+    "compile": "cd client && tsc && cd ../server && tsc",
+    "postinstall": "cd server && npm install"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "vue",
+        "extensions": [
+          ".vue"
+        ],
+        "aliases": [
+          "VUE"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+			{
+				"language": "vue",
+        "scopeName": "text.html.vue",
+        "path": "./syntaxes/vue.tmLanguage.json",
+        "embeddedLanguages": {
+          "text.html.basic": "html",
+          "text.jade": "jade",
+          "text.pug": "pug",
+          "source.css": "css",
+          "source.css.scss": "scss",
+          "source.css.less": "less",
+          "source.css.postcss": "postcss",
+          "source.sass": "sass",
+          "source.stylus": "stylus",
+          "source.js": "javascript",
+          "source.ts": "typescript",
+          "source.coffee": "coffeescript"
+        }
+      }
+    ],
+    "configuration.bak": {
+      "id": "vue",
+      "order": 20,
+      "type": "object",
+      "title": "VUE",
+      "properties": {
+        "vue.format.enable": {
+          "type": "boolean",
+          "scope": "window",
+          "default": true,
+          "description": "%vue.format.enable.desc%"
+        },
+        "vue.format.wrapLineLength": {
+          "type": "integer",
+          "scope": "resource",
+          "default": 120,
+          "description": "%vue.format.wrapLineLength.desc%"
+        },
+        "vue.format.unformatted": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "scope": "resource",
+          "default": "",
+          "description": "%vue.format.unformatted.desc%"
+        },
+        "vue.format.contentUnformatted": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "scope": "resource",
+          "default": "pre,code,textarea",
+          "description": "%vue.format.contentUnformatted.desc%"
+        },
+        "vue.format.indentInnerHtml": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": false,
+          "description": "%vue.format.indentInnerHtml.desc%"
+        },
+        "vue.format.preserveNewLines": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue.format.preserveNewLines.desc%"
+        },
+        "vue.format.maxPreserveNewLines": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "scope": "resource",
+          "default": null,
+          "description": "%vue.format.maxPreserveNewLines.desc%"
+        },
+        "vue.format.indentHandlebars": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": false,
+          "description": "%vue.format.indentHandlebars.desc%"
+        },
+        "vue.format.endWithNewline": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": false,
+          "description": "%vue.format.endWithNewline.desc%"
+        },
+        "vue.format.extraLiners": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "scope": "resource",
+          "default": "head, body, /html",
+          "description": "%vue.format.extraLiners.desc%"
+        },
+        "vue.format.wrapAttributes": {
+          "type": "string",
+          "scope": "resource",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "force",
+            "force-aligned",
+            "force-expand-multiline"
+          ],
+          "enumDescriptions": [
+            "%vue.format.wrapAttributes.auto%",
+            "%vue.format.wrapAttributes.force%",
+            "%vue.format.wrapAttributes.forcealign%",
+            "%vue.format.wrapAttributes.forcemultiline%"
+          ],
+          "description": "%vue.format.wrapAttributes.desc%"
+        },
+        "vue.validate.scripts": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue.validate.scripts%"
+        },
+        "vue.validate.styles": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue.validate.styles%"
+        },
+        "vue.autoClosingTags": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue.autoClosingTags%"
+        },
+        "vue.trace.server": {
+          "type": "string",
+          "scope": "window",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "%vue.trace.server.desc%"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "typescript": "^2.6.1",
+    "vscode-extension-telemetry": "0.0.8",
+    "vscode-languageclient": "3.5.0-next.3",
+    "vscode-nls": "2.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "7.0.43"
+  }
+}
