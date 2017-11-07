@@ -2,7 +2,7 @@
 
 This extension adds Vue Language Service into Visual Studio Code.
 
-这个扩展为 VSCode 增加了 vue 语言服务，解决 vue 单文件组件(.vue)文件的语法识别问题。
+这个扩展为 VSCode 增加了 vue 语言服务，解决 vue 单文件组件(.vue)文件的语法识别问题。
 
 ## Add Supported languages
 
@@ -29,7 +29,7 @@ This extension adds Vue Language Service into Visual Studio Code.
 
 ![file link](asset/path-alias.gif)
 
-## To support file path alias
+## To support file path alias
 
 * Create .vuelsrc file in project root dir
 * Add content:
