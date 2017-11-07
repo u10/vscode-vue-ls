@@ -4,6 +4,10 @@
   "publisher": "vaniship",
   "description": "A Vue Language Service Extension",
 	"icon": "asset/vue.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/u10/vscode-vue-ls.git"
+  },
   "aiKey": "AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217",
   "engines": {
     "vscode": "0.10.x"

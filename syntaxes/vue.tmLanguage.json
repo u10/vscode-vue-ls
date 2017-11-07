@@ -794,6 +794,7 @@
           },
           "end": "(?<='|\")|(?=\\b)",
           "name": "meta.directive.vue",
+          "contentName": "source.js",
           "patterns": [
             {
               "include": "#vue-directive-source"
