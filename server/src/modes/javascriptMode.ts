@@ -10,6 +10,7 @@ import { LanguageMode, Settings } from './languageModes';
 import { getWordAtText, startsWith, isWhitespaceOnly, repeat } from '../utils/strings';
 import { HTMLDocumentRegions } from './embeddedSupport';
 import * as path from 'path'
+import * as fs from 'fs'
 import {sync as requireResolveSync} from 'resolve'
 
 import * as ts from 'typescript';
@@ -239,9 +240,31 @@ export function getJavascriptMode(documentRegions: LanguageModelCache<HTMLDocume
 				const end = content.indexOf('\'', offset)
 				let filePath = content.substring(start, end)
 				if (filePath) {
+					const basedir = path.resolve(decodeURIComponent(document.uri).substr(7), '..').replace(/^\w+:\\/, '')
+					let searchDir = basedir
+					let opts = {}
+					while (true) {
+						let rcFilePath = path.resolve(searchDir, '.vuelsrc')
+						if (fs.existsSync(rcFilePath)) {
+							opts = require(rcFilePath)
+							break;
+						}
+						let parent = path.resolve(searchDir, '..')
+						if (parent === searchDir) {
+							break;
+						}
+						searchDir = parent
+					}
 					try {
+						let alias = opts && opts['resolve'] && opts['resolve'].alias || {}
+						for (let key in alias) {
+							if (filePath.substr(0, key.length) === key) {
+								filePath = alias[key] + filePath.substr(key.length)
+								break;
+							}
+						}
 						filePath = requireResolveSync(filePath, {
-							basedir: path.resolve(document.uri.substr(7), '..').replace(/^\w+:\\/, ''),
+							basedir: basedir,
 							extensions: ['.vue', '.js', '.scss', '.less', '.css']
 						})
 						return [{
