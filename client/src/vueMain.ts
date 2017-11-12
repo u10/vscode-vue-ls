@@ -6,7 +6,7 @@
 
 import * as path from 'path';
 
-import { languages, ExtensionContext, IndentAction, Position, TextDocument, Color, ColorInformation, ColorPresentation } from 'vscode';
+import { env, languages, ExtensionContext, IndentAction, Position, TextDocument, Color, ColorInformation, ColorPresentation } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind, RequestType, TextDocumentPositionParams } from 'vscode-languageclient';
 import { EMPTY_ELEMENTS } from './htmlEmptyTagsShared';
 import { activateTagClosing } from './tagClosing';
@@ -60,6 +60,7 @@ export function activate(context: ExtensionContext) {
 			configurationSection: ['vue', 'html', 'css', 'javascript'], // the settings to synchronize
 		},
 		initializationOptions: {
+			env,
 			embeddedLanguages
 		}
 	};
@@ -71,35 +72,35 @@ export function activate(context: ExtensionContext) {
 	let disposable = client.start();
 	toDispose.push(disposable);
 	client.onReady().then(() => {
-		disposable = languages.registerColorProvider(documentSelector, {
-			provideDocumentColors(document: TextDocument): Thenable<ColorInformation[]> {
-				let params: DocumentColorParams = {
-					textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document)
-				};
-				return client.sendRequest(DocumentColorRequest.type, params).then(symbols => {
-					return symbols.map(symbol => {
-						let range = client.protocol2CodeConverter.asRange(symbol.range);
-						let color = new Color(symbol.color.red, symbol.color.green, symbol.color.blue, symbol.color.alpha);
-						return new ColorInformation(range, color);
-					});
-				});
-			},
-			provideColorPresentations(color, context): Thenable<ColorPresentation[]> {
-				let params: ColorPresentationParams = {
-					textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(context.document),
-					colorInfo: { range: client.code2ProtocolConverter.asRange(context.range), color }
-				};
-				return client.sendRequest(ColorPresentationRequest.type, params).then(presentations => {
-					return presentations.map(p => {
-						let presentation = new ColorPresentation(p.label);
-						presentation.textEdit = p.textEdit && client.protocol2CodeConverter.asTextEdit(p.textEdit);
-						presentation.additionalTextEdits = p.additionalTextEdits && client.protocol2CodeConverter.asTextEdits(p.additionalTextEdits);
-						return presentation;
-					});
-				});
-			}
-		});
-		toDispose.push(disposable);
+		// disposable = languages.registerColorProvider(documentSelector, {
+		// 	provideDocumentColors(document: TextDocument): Thenable<ColorInformation[]> {
+		// 		let params: DocumentColorParams = {
+		// 			textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document)
+		// 		};
+		// 		return client.sendRequest(DocumentColorRequest.type, params).then(symbols => {
+		// 			return symbols.map(symbol => {
+		// 				let range = client.protocol2CodeConverter.asRange(symbol.range);
+		// 				let color = new Color(symbol.color.red, symbol.color.green, symbol.color.blue, symbol.color.alpha);
+		// 				return new ColorInformation(range, color);
+		// 			});
+		// 		});
+		// 	},
+		// 	provideColorPresentations(color, context): Thenable<ColorPresentation[]> {
+		// 		let params: ColorPresentationParams = {
+		// 			textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(context.document),
+		// 			colorInfo: { range: client.code2ProtocolConverter.asRange(context.range), color }
+		// 		};
+		// 		return client.sendRequest(ColorPresentationRequest.type, params).then(presentations => {
+		// 			return presentations.map(p => {
+		// 				let presentation = new ColorPresentation(p.label);
+		// 				presentation.textEdit = p.textEdit && client.protocol2CodeConverter.asTextEdit(p.textEdit);
+		// 				presentation.additionalTextEdits = p.additionalTextEdits && client.protocol2CodeConverter.asTextEdits(p.additionalTextEdits);
+		// 				return presentation;
+		// 			});
+		// 		});
+		// 	}
+		// });
+		// toDispose.push(disposable);
 
 		// let tagRequestor = (document: TextDocument, position: Position) => {
 		// 	let param = client.code2ProtocolConverter.asTextDocumentPositionParams(document, position);
