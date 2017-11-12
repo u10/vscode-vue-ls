@@ -37,21 +37,23 @@
     "grammars": [
 			{
 				"language": "vue",
-        "scopeName": "text.html.vue",
+        "scopeName": "text.vue",
         "path": "./syntaxes/vue.tmLanguage.json",
         "embeddedLanguages": {
-          "text.html.basic": "html",
-          "text.jade": "jade",
-          "text.pug": "pug",
-          "source.css": "css",
-          "source.css.scss": "scss",
-          "source.css.less": "less",
-          "source.css.postcss": "postcss",
-          "source.sass": "sass",
-          "source.stylus": "stylus",
-          "source.js": "javascript",
-          "source.ts": "typescript",
-          "source.coffee": "coffeescript"
+          "text.vue.template.html": "html",
+          "text.vue.template.pug": "pug",
+          "text.vue.template.jade": "jade",
+          "text.vue.template.embedded.js": "javascript",
+          "text.vue.template.embedded.css": "css",
+          "text.vue.style.css": "css",
+          "text.vue.style.scss": "scss",
+          "text.vue.style.less": "less",
+          "text.vue.style.sass": "sass",
+          "text.vue.style.postcss": "postcss",
+          "text.vue.style.stylus": "stylus",
+          "text.vue.script.js": "javascript",
+          "text.vue.script.ts": "typescript",
+          "text.vue.script.coffee": "coffeescript"
         }
       }
     ],
