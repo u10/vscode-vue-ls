@@ -16,6 +16,11 @@
       "integrity": "sha1-oYfghJWgdfIAypRgeckU4aX+liw=",
       "dev": true
     },
+    "diff": {
+      "version": "3.4.0",
+      "resolved": "http://registry.npm.taobao.org/diff/download/diff-3.4.0.tgz",
+      "integrity": "sha1-sdhVB9rzlkgo3lSzfQ1zumfdpWw="
+    },
     "path-parse": {
       "version": "1.0.5",
       "resolved": "http://registry.npm.taobao.org/path-parse/download/path-parse-1.0.5.tgz",
