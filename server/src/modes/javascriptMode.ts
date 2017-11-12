@@ -9,12 +9,9 @@ import { SymbolInformation, SymbolKind, CompletionItem, Location, SignatureHelp,
 import { LanguageMode, Settings } from './languageModes';
 import { getWordAtText, startsWith, isWhitespaceOnly, repeat } from '../utils/strings';
 import { HTMLDocumentRegions } from './embeddedSupport';
-import * as path from 'path'
 import * as fs from 'fs'
 import {sync as requireResolveSync} from 'resolve'
-
-import * as ts from 'typescript';
-import { join } from 'path';
+import { join, resolve } from 'path';
 
 import * as prettier from 'prettier';
 
@@ -23,10 +20,11 @@ const JQUERY_D_TS = join(__dirname, '../../lib/jquery.d.ts');
 
 const JS_WORD_REGEX = /(-?\d*\.\d\w*)|([^\`\~\!\@\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g;
 
-export function getJavascriptMode(documentRegions: LanguageModelCache<HTMLDocumentRegions>): LanguageMode {
+export function getJavascriptMode(env, documentRegions: LanguageModelCache<HTMLDocumentRegions>): LanguageMode {
+	const ts = require(resolve(env.appRoot, 'extensions/node_modules/typescript'))
 	const jsDocuments = getLanguageModelCache<TextDocument>(10, 60, document => documentRegions.get(document).getEmbeddedDocument('javascript'));
 
-	let compilerOptions: ts.CompilerOptions = { allowNonTsExtensions: true, allowJs: true, lib: ['lib.es6.d.ts'], target: ts.ScriptTarget.Latest, moduleResolution: ts.ModuleResolutionKind.Classic };
+	let compilerOptions/* : ts.CompilerOptions */ = { allowNonTsExtensions: true, allowJs: true, lib: ['lib.es6.d.ts'], target: ts.ScriptTarget.Latest, moduleResolution: ts.ModuleResolutionKind.Classic };
 	let currentTextDocument: TextDocument;
 	let scriptFileVersion: number = 0;
 	function updateCurrentTextDocument(doc: TextDocument) {
@@ -35,7 +33,7 @@ export function getJavascriptMode(documentRegions: LanguageModelCache<HTMLDocume
 			scriptFileVersion++;
 		}
 	}
-	const host: ts.LanguageServiceHost = {
+	const host/* : ts.LanguageServiceHost */ = {
 		getCompilationSettings: () => compilerOptions,
 		getScriptFileNames: () => [FILE_NAME, JQUERY_D_TS],
 		getScriptKind: () => ts.ScriptKind.JS,
@@ -191,7 +189,7 @@ export function getJavascriptMode(documentRegions: LanguageModelCache<HTMLDocume
 			if (items) {
 				let result: SymbolInformation[] = [];
 				let existing = {};
-				let collectSymbols = (item: ts.NavigationBarItem, containerLabel?: string) => {
+				let collectSymbols = (item/*: ts.NavigationBarItem*/, containerLabel?: string) => {
 					let sig = item.text + item.kind + item.spans[0].start;
 					if (item.kind !== 'script' && !existing[sig]) {
 						let symbol: SymbolInformation = {
@@ -240,16 +238,16 @@ export function getJavascriptMode(documentRegions: LanguageModelCache<HTMLDocume
 				const end = content.indexOf('\'', offset)
 				let filePath = content.substring(start, end)
 				if (filePath) {
-					const basedir = path.resolve(decodeURIComponent(document.uri).substr(7), '..').replace(/^\w+:\\/, '')
+					const basedir = resolve(decodeURIComponent(document.uri).substr(7), '..').replace(/^\w+:\\/, '')
 					let searchDir = basedir
 					let opts = {}
 					while (true) {
-						let rcFilePath = path.resolve(searchDir, '.vuelsrc')
+						let rcFilePath = resolve(searchDir, '.vuelsrc')
 						if (fs.existsSync(rcFilePath)) {
 							opts = require(rcFilePath)
 							break;
 						}
-						let parent = path.resolve(searchDir, '..')
+						let parent = resolve(searchDir, '..')
 						if (parent === searchDir) {
 							break;
 						}
@@ -297,7 +295,7 @@ export function getJavascriptMode(documentRegions: LanguageModelCache<HTMLDocume
 			scriptFileVersion++;
 			let formatterSettings = settings && settings.javascript && settings.javascript.format;
 			let initialIndentLevel = computeInitialIndent(document, range, formatParams);
-			let formatSettings = convertOptions(formatParams, formatterSettings, initialIndentLevel + 1);
+			let formatSettings = convertOptions(ts, formatParams, formatterSettings, initialIndentLevel + 1);
 			let start = currentTextDocument.offsetAt(range.start);
 			let end = currentTextDocument.offsetAt(range.end);
 			let lastLineRange = null;
@@ -402,7 +400,7 @@ function convertSymbolKind(kind: string): SymbolKind {
 	return SymbolKind.Variable;
 }
 
-function convertOptions(options: FormattingOptions, formatSettings: any, initialIndentLevel: number): ts.FormatCodeOptions {
+function convertOptions(ts, options: FormattingOptions, formatSettings: any, initialIndentLevel: number)/* : ts.FormatCodeOptions */ {
 	return {
 		ConvertTabsToSpaces: options.insertSpaces,
 		TabSize: options.tabSize,

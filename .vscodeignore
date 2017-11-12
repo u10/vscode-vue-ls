@@ -2,7 +2,6 @@ test/**
 asset/*.gif
 server/tsconfig.json
 server/node_modules/@types/**
-server/node_modules/typescript/**
 server/src/**
 server/test/**
 server/out/test/**
