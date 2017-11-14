@@ -1,6 +1,6 @@
 {
-  "name": "vscode-html-languageserver",
-  "description": "HTML language server",
+  "name": "vue-ls",
+  "description": "Vue language server",
   "version": "1.0.0",
   "author": "Microsoft Corporation",
   "license": "MIT",
@@ -17,12 +17,9 @@
     "vscode-nls": "^2.0.2",
     "vscode-uri": "^1.0.1"
   },
-  "devDependencies": {
-    "@types/node": "7.0.43",
-    "@types/mocha": "2.2.33"
-  },
   "scripts": {
-    "compile": "gulp compile-extension:html-server",
-    "watch": "tsc -w"
+    "installServer": "installServerIntoExtension ../client ./package.json ./tsconfig.json",
+    "compile": "installServerIntoExtension ../client ./package.json ./tsconfig.json && tsc -p .",
+    "watch": "installServerIntoExtension ../client ./package.json ./tsconfig.json && tsc -w -p ."
   }
 }
