@@ -6,10 +6,8 @@
   "icon": "asset/vue.png",
   "keywords": [
 		"vue",
-    "vue 2",
     "sfc",
     "language",
-		"language service",
 		"highlight",
 	  "format"
   ],
