@@ -1,11 +1,16 @@
 {
-	"exclude": ["./src/typings"],
+	"exclude": ["node_modules", "server", "./src/typings"],
 	"compilerOptions": {
-		"target": "es5",
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noImplicitAny": true,
+		"noImplicitReturns": true,
+		"target": "es6",
 		"module": "commonjs",
-		"outDir": "./out",
-		"lib": [
-			"es5", "es2015.promise"
-		]
+		"moduleResolution": "node",
+		"rootDir": ".",
+		"outDir": "out",
+		"lib": [ "es2016" ],
+		"sourceMap": true
 	}
 }
