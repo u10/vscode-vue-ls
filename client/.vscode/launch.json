@@ -1,5 +1,5 @@
 {
-	"version": "0.2.0",
+	"version": "0.1.0",
 	"configurations": [
 		{
 			"name": "Launch Extension",
@@ -12,7 +12,8 @@
 			],
 			"stopOnEntry": false,
 			"sourceMaps": true,
-			"outFiles": ["${workspaceFolder}/out/**/*.js"]
+			"outFiles": ["${workspaceFolder}/out/**/*.js"],
+			"preLaunchTask": "npm"
 		}
 	]
 }

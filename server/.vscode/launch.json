@@ -8,7 +8,8 @@
 			"request": "attach",
 			"port": 6004,
 			"sourceMaps": true,
-			"outFiles": ["${workspaceFolder}/../server/**/*.js"]
+			"outFiles": ["${workspaceFolder}/../server/**/*.js"],
+			"preLaunchTask": "npm"
 		}
 	]
 }
