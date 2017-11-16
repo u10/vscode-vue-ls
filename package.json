@@ -13,7 +13,8 @@
 		"compile:client": "tsc -p client/tsconfig.json",
 		"watch:client": "tsc -w -p client/tsconfig.json",
 		"compile:server": "cd server && npm run installServer && cd .. && tsc -p server/tsconfig.json",
-		"watch:server": "cd server && npm run installServer && cd .. && tsc -w -p server/tsconfig.json"
+    "watch:server": "cd server && npm run installServer && cd .. && tsc -w -p server/tsconfig.json",
+    "package": "cd client && vsce package --baseImagesUrl https://github.com/u10/vscode-vue-ls/raw/master/client"
   },
   "dependencies": {},
   "devDependencies": {
