@@ -8,9 +8,9 @@ import { LanguageModelCache, getLanguageModelCache } from '../languageModelCache
 import { TextDocument, Position } from 'vscode-languageserver-types';
 import { getCSSLanguageService, getSCSSLanguageService, getLESSLanguageService, Stylesheet } from 'vscode-css-languageservice';
 import { LanguageMode, Settings, ColorInformation } from './languageModes';
-import { HTMLDocumentRegions, CSS_STYLE_RULE } from './embeddedSupport';
+import { VueDocumentRegions, CSS_STYLE_RULE } from './embeddedSupport';
 
-export function getCSSMode(documentRegions: LanguageModelCache<HTMLDocumentRegions>, type: string = 'css'): LanguageMode {
+export function getCSSMode(documentRegions: LanguageModelCache<VueDocumentRegions>, type: string = 'css'): LanguageMode {
 	let cssLanguageService = ((type: string) => {
 		switch (type) {
 			case 'scss':
@@ -22,7 +22,7 @@ export function getCSSMode(documentRegions: LanguageModelCache<HTMLDocumentRegio
 				return getCSSLanguageService();
 		}
 	})(type)
-	let embeddedCSSDocuments = getLanguageModelCache<TextDocument>(10, 60, document => documentRegions.get(document).getEmbeddedDocument(type));
+	let embeddedCSSDocuments = getLanguageModelCache<TextDocument>(10, 60, document => documentRegions.get(document).getEmbeddedDocument(type, false));
 	let cssStylesheets = getLanguageModelCache<Stylesheet>(10, 60, document => cssLanguageService.parseStylesheet(document));
 
 	return {

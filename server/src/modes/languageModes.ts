@@ -3,8 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 'use strict';
-
-import { getLanguageService as getHTMLLanguageService, DocumentContext } from 'vscode-html-languageservice';
+import { DocumentContext } from 'vscode-html-languageservice';
 import {
 	CompletionItem, Location, SignatureHelp, Definition, TextEdit, TextDocument, Diagnostic, DocumentLink, Range,
 	Hover, DocumentHighlight, CompletionList, Position, FormattingOptions, SymbolInformation
@@ -13,7 +12,7 @@ import {
 import { ColorInformation, ColorPresentation } from 'vscode-languageserver-protocol/lib/protocol.colorProvider.proposed';
 
 import { getLanguageModelCache, LanguageModelCache } from '../languageModelCache';
-import { getDocumentRegions, HTMLDocumentRegions } from './embeddedSupport';
+import { getDocumentRegions } from './embeddedSupport';
 import { getCSSMode } from './cssMode';
 import { getJavascriptMode } from './javascriptMode';
 import { getHTMLMode } from './htmlMode';
@@ -22,7 +21,8 @@ import { getVueMode } from './vueMode';
 export { ColorInformation, ColorPresentation };
 
 export interface Settings {
-	vue?: any;
+	'vue-ls'?: any;
+	html?: any;
 	css?: any;
 	javascript?: any;
 }
@@ -32,7 +32,7 @@ export interface SettingProvider {
 }
 
 export interface LanguageMode {
-	getId();
+	getId(): string;
 	configure?: (options: Settings) => void;
 	doValidation?: (document: TextDocument, settings?: Settings) => Diagnostic[];
 	doComplete?: (document: TextDocument, position: Position, settings?: Settings) => CompletionList;
@@ -67,29 +67,29 @@ export interface LanguageModeRange extends Range {
 	attributeValue?: boolean;
 }
 
-export function getLanguageModes(supportedLanguages: { [languageId: string]: boolean; }): LanguageModes {
-	var htmlLanguageService = getHTMLLanguageService();
+export function getLanguageModes(env: {appRoot: string}): LanguageModes {
 	const documentRegions = getLanguageModelCache(
-		10,
-		60,
-		document => getDocumentRegions(htmlLanguageService, document));
+			10,
+			60,
+			document => getDocumentRegions(env, document));
 
 	let modelCaches: LanguageModelCache<any>[] = [];
 	modelCaches.push(documentRegions);
 
-	let modes = {};
-	modes['vue'] = getVueMode();
-	if (supportedLanguages['html']) {
-		modes['html'] = getHTMLMode(documentRegions);
-	}
-	if (supportedLanguages['css']) {
-		modes['css'] = getCSSMode(documentRegions);
-		modes['scss'] = getCSSMode(documentRegions, 'scss');
-		modes['less'] = getCSSMode(documentRegions, 'less');
-	}
-	if (supportedLanguages['javascript']) {
-		modes['javascript'] = getJavascriptMode(documentRegions);
-	}
+	let modes: {
+		[key: string]: LanguageMode;
+	} = {};
+	modes.vue = getVueMode();
+	modes.html = getHTMLMode(documentRegions);
+	modes.css = getCSSMode(documentRegions);
+	modes.scss = getCSSMode(documentRegions, 'scss');
+	modes.less = getCSSMode(documentRegions, 'less');
+	modes.javascript = getJavascriptMode(env, documentRegions);
+	modes.typescript = {
+		getId: () => 'typescript',
+		onDocumentRemoved () {},
+		dispose () {}
+	};
 	return {
 		getModeAtPosition(document: TextDocument, position: Position): LanguageMode {
 			let languageId = documentRegions.get(document).getLanguageAtPosition(position);
@@ -99,14 +99,18 @@ export function getLanguageModes(supportedLanguages: { [languageId: string]: boo
 			return null;
 		},
 		getModesInRange(document: TextDocument, range: Range): LanguageModeRange[] {
-			return documentRegions.get(document).getLanguageRanges(range).map(r => {
-				return {
-					start: r.start,
-					end: r.end,
-					mode: modes[r.languageId],
-					attributeValue: r.attributeValue
-				};
-			});
+			let result = [];
+			for (let item of documentRegions.get(document).getLanguageRanges(range)) {
+				let mode = modes[item.languageId];
+				if (mode) {
+					result.push({
+						start: item.start,
+						end: item.end,
+						mode
+					});
+				}
+			}
+			return result;
 		},
 		getAllModesInDocument(document: TextDocument): LanguageMode[] {
 			let result = [];

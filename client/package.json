@@ -1,6 +1,6 @@
 {
   "name": "vue-ls",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "publisher": "vaniship",
   "description": "A Vue Language Service Extension",
   "icon": "asset/vue.png",
@@ -60,130 +60,119 @@
         }
       }
     ],
-    "configuration.bak": {
+    "configuration": {
       "id": "vue",
       "order": 20,
       "type": "object",
       "title": "VUE",
       "properties": {
-        "vue.format.enable": {
+        "vue-ls.validate.enabled": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue-ls.validate.enabled.desc%"
+        },
+        "vue-ls.format.enabled": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue-ls.format.enabled.desc%"
+        },
+        "vue-ls.style.css.validate.enabled": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue-ls.style.css.validate.enabled.desc%"
+        },
+        "vue-ls.style.css.format.enabled": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue-ls.style.css.format.enabled.desc%"
+        },
+        "vue-ls.style.less.validate.enabled": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue-ls.style.less.validate.enabled.desc%"
+        },
+        "vue-ls.style.less.format.enabled": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue-ls.style.less.format.enabled.desc%"
+        },
+        "vue-ls.style.scss.validate.enabled": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue-ls.style.scss.validate.enabled.desc%"
+        },
+        "vue-ls.style.scss.format.enabled": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue-ls.style.scss.format.enabled.desc%"
+        },
+        "vue-ls.script.js.validate.enabled": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue-ls.script.js.validate.enabled.desc%"
+        },
+        "vue-ls.script.js.format.enabled": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue-ls.script.js.format.enabled.desc%"
+        },
+        "vue-ls.script.js.format.semi": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": false,
+          "description": "%vue-ls.script.js.format.semi.desc%"
+        },
+        "vue-ls.script.js.format.singleQuote": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue-ls.script.js.format.singleQuote.desc%"
+        },
+        "vue-ls.script.ts.validate.enabled": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue-ls.script.ts.validate.enabled.desc%"
+        },
+        "vue-ls.script.ts.format.enabled": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue-ls.script.ts.format.enabled.desc%"
+        },
+        "vue-ls.script.ts.format.semi": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": false,
+          "description": "%vue-ls.script.ts.format.semi.desc%"
+        },
+        "vue-ls.script.ts.format.singleQuote": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue-ls.script.ts.format.singleQuote.desc%"
+        },
+        "vue-ls.template.html.autoClosingTags": {
+          "type": "boolean",
+          "scope": "resource",
+          "default": true,
+          "description": "%vue-ls.template.html.autoClosingTags.desc%"
+        },
+        "vue-ls.template.html.format.enabled": {
           "type": "boolean",
           "scope": "window",
           "default": true,
-          "description": "%vue.format.enable.desc%"
-        },
-        "vue.format.wrapLineLength": {
-          "type": "integer",
-          "scope": "resource",
-          "default": 120,
-          "description": "%vue.format.wrapLineLength.desc%"
-        },
-        "vue.format.unformatted": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "scope": "resource",
-          "default": "",
-          "description": "%vue.format.unformatted.desc%"
-        },
-        "vue.format.contentUnformatted": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "scope": "resource",
-          "default": "pre,code,textarea",
-          "description": "%vue.format.contentUnformatted.desc%"
-        },
-        "vue.format.indentInnerHtml": {
-          "type": "boolean",
-          "scope": "resource",
-          "default": false,
-          "description": "%vue.format.indentInnerHtml.desc%"
-        },
-        "vue.format.preserveNewLines": {
-          "type": "boolean",
-          "scope": "resource",
-          "default": true,
-          "description": "%vue.format.preserveNewLines.desc%"
-        },
-        "vue.format.maxPreserveNewLines": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "scope": "resource",
-          "default": null,
-          "description": "%vue.format.maxPreserveNewLines.desc%"
-        },
-        "vue.format.indentHandlebars": {
-          "type": "boolean",
-          "scope": "resource",
-          "default": false,
-          "description": "%vue.format.indentHandlebars.desc%"
-        },
-        "vue.format.endWithNewline": {
-          "type": "boolean",
-          "scope": "resource",
-          "default": false,
-          "description": "%vue.format.endWithNewline.desc%"
-        },
-        "vue.format.extraLiners": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "scope": "resource",
-          "default": "head, body, /html",
-          "description": "%vue.format.extraLiners.desc%"
-        },
-        "vue.format.wrapAttributes": {
-          "type": "string",
-          "scope": "resource",
-          "default": "auto",
-          "enum": [
-            "auto",
-            "force",
-            "force-aligned",
-            "force-expand-multiline"
-          ],
-          "enumDescriptions": [
-            "%vue.format.wrapAttributes.auto%",
-            "%vue.format.wrapAttributes.force%",
-            "%vue.format.wrapAttributes.forcealign%",
-            "%vue.format.wrapAttributes.forcemultiline%"
-          ],
-          "description": "%vue.format.wrapAttributes.desc%"
-        },
-        "vue.validate.scripts": {
-          "type": "boolean",
-          "scope": "resource",
-          "default": true,
-          "description": "%vue.validate.scripts%"
-        },
-        "vue.validate.styles": {
-          "type": "boolean",
-          "scope": "resource",
-          "default": true,
-          "description": "%vue.validate.styles%"
-        },
-        "vue.autoClosingTags": {
-          "type": "boolean",
-          "scope": "resource",
-          "default": true,
-          "description": "%vue.autoClosingTags%"
-        },
-        "vue.trace.server": {
-          "type": "string",
-          "scope": "window",
-          "enum": [
-            "off",
-            "messages",
-            "verbose"
-          ],
-          "default": "off",
-          "description": "%vue.trace.server.desc%"
+          "description": "%vue-ls.template.html.format.enabled.desc%"
         }
       }
     }

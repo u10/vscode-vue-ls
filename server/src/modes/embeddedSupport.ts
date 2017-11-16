@@ -4,16 +4,17 @@
  *--------------------------------------------------------------------------------------------*/
 'use strict';
 
-
-import { TextDocument, Position, LanguageService, TokenType, Range } from 'vscode-html-languageservice';
+import * as path from 'path'
+import { TextDocument, Position, Range } from 'vscode-html-languageservice';
+import { repeat } from '../utils/strings';
 
 export interface LanguageRange extends Range {
 	languageId: string;
 	attributeValue?: boolean;
 }
 
-export interface HTMLDocumentRegions {
-	getEmbeddedDocument(languageId: string, ignoreAttributeValues?: boolean): TextDocument;
+export interface VueDocumentRegions {
+	getEmbeddedDocument(languageId: string, isTopLevel?: boolean): TextDocument;
 	getLanguageRanges(range: Range): LanguageRange[];
 	getLanguageAtPosition(position: Position): string;
 	getLanguagesInDocument(): string[];
@@ -22,238 +23,144 @@ export interface HTMLDocumentRegions {
 
 export var CSS_STYLE_RULE = '__';
 
-interface EmbeddedRegion { languageId: string; start: number; end: number; attributeValue?: boolean; };
+interface EmbeddedRegion { firstLanguageId: string; lastLanguageId: string; start: number; end: number;};
 
-
-export function getDocumentRegions(languageService: LanguageService, document: TextDocument): HTMLDocumentRegions {
+export function getDocumentRegions(env: {appRoot: string}, document: TextDocument): VueDocumentRegions {
+	const tm = require(path.resolve(env.appRoot, 'node_modules/vscode-textmate'))
 	let regions: EmbeddedRegion[] = [];
-	let scanner = languageService.createScanner(document.getText());
-	let lastTagName: string;
-	let lastAttributeName: string;
-	let importedScripts = [];
+	let importedScripts: string[] = [];
 
-	let templateLanguageIdFromLang: string;
-	let scriptLanguageIdFromLang: string;
-	let styleLanguageIdFromLang: string;
+	const config: IVSCodeContributes = require(path.resolve(__dirname, '../../package.json')).contributes
+	const vueGrammarConfig = config.grammars.find((item) => item.language === 'vue')
+	const grammar = (new tm.Registry()).loadGrammarFromPathSync(
+		path.resolve(__dirname, '../..', vueGrammarConfig.path)
+	)
+	const tokens = grammar.tokenizeLine(document.getText()).tokens;
 
-	let token = scanner.scan();
-	let templateDeep: number = 0;
-	let templateStart: number;
-	while (token !== TokenType.EOS) {
-		switch (token) {
-			case TokenType.StartTag:
-				lastTagName = scanner.getTokenText();
-				if (lastTagName === 'template') {
-					if (templateDeep++ === 0) {
-						templateStart = scanner.getTokenEnd() + 1;
-					}
-				}
-				lastAttributeName = null;
-				templateLanguageIdFromLang = 'html';
-				scriptLanguageIdFromLang = 'javascript';
-				styleLanguageIdFromLang = 'css';
-				break;
-			case TokenType.EndTag:
-				lastTagName = scanner.getTokenText();
-				if (lastTagName === 'template') {
-					if (templateDeep-- === 1) {
-						regions.push({ languageId: 'html', start: templateStart, end: scanner.getTokenOffset() - 2 });
-					}
-				}
-				break;
-			case TokenType.Styles:
-				regions.push({ languageId: styleLanguageIdFromLang, start: scanner.getTokenOffset(), end: scanner.getTokenEnd() });
-				break;
-			case TokenType.Script:
-				regions.push({ languageId: scriptLanguageIdFromLang, start: scanner.getTokenOffset(), end: scanner.getTokenEnd() });
-				break;
-			case TokenType.AttributeName:
-				lastAttributeName = scanner.getTokenText();
-				break;
-			case TokenType.AttributeValue:
-				if (lastAttributeName === 'src' && lastTagName.toLowerCase() === 'script') {
-					let value = scanner.getTokenText();
-					if (value[0] === '\'' || value[0] === '"') {
-						value = value.substr(1, value.length - 1);
-					}
-					importedScripts.push(value);
-				} else if (lastAttributeName === 'lang' && lastTagName.toLowerCase() === 'script') {
-					if (/["'](ts)["']/.test(scanner.getTokenText())) {
-						scriptLanguageIdFromLang = 'typescript';
-					} else {
-						scriptLanguageIdFromLang = 'javasript';
-					}
-				} else if (lastAttributeName === 'lang' && lastTagName.toLowerCase() === 'style') {
-					if (/["'](css|scss|less)["']/.test(scanner.getTokenText())) {
-						styleLanguageIdFromLang = scanner.getTokenText().replace(/["']/g,'');
-					} else {
-						styleLanguageIdFromLang = 'css';
-					}
-				} else {
-					let attributeLanguageId = getAttributeLanguage(lastAttributeName);
-					if (attributeLanguageId) {
-						let start = scanner.getTokenOffset();
-						let end = scanner.getTokenEnd();
-						let firstChar = document.getText()[start];
-						if (firstChar === '\'' || firstChar === '"') {
-							start++;
-							end--;
-						}
-						regions.push({ languageId: attributeLanguageId, start, end, attributeValue: true });
-					}
-				}
-				lastAttributeName = null;
-				break;
+	let lastRegions: EmbeddedRegion = {firstLanguageId: null, lastLanguageId: null ,start: 0, end: 0};
+	for (let token of tokens) {
+		let firstLanguageId;
+		let lastLanguageId;
+		for (let scope of token.scopes) {
+			const languageId = vueGrammarConfig.embeddedLanguages[scope];
+			if (languageId) {
+				if (!firstLanguageId) {firstLanguageId = languageId}
+				lastLanguageId = languageId
+			}
 		}
-		token = scanner.scan();
+		firstLanguageId = firstLanguageId || 'vue'
+		lastLanguageId = lastLanguageId || 'vue'
+		if (lastLanguageId === lastRegions.lastLanguageId) {
+			lastRegions.end = token.endIndex;
+		} else {
+			lastRegions = {
+				firstLanguageId,
+				lastLanguageId,
+				start: token.startIndex,
+				end: token.endIndex
+			}
+			regions.push(lastRegions);
+		}
 	}
+
 	return {
 		getLanguageRanges: (range: Range) => getLanguageRanges(document, regions, range),
-		getEmbeddedDocument: (languageId: string, ignoreAttributeValues: boolean) => getEmbeddedDocument(document, regions, languageId, ignoreAttributeValues),
+		getEmbeddedDocument: (languageId: string, isTopLevel?: boolean) => getEmbeddedDocument(document, regions, languageId, isTopLevel),
 		getLanguageAtPosition: (position: Position) => getLanguageAtPosition(document, regions, position),
 		getLanguagesInDocument: () => getLanguagesInDocument(document, regions),
 		getImportedScripts: () => importedScripts
 	};
 }
 
+function pushLanguageRange(target: LanguageRange[], lastLanguageRange: LanguageRange, languageId: string, start: Position, end: Position) {
+	if (lastLanguageRange.languageId === languageId) {
+		lastLanguageRange.end = end
+	} else {
+		lastLanguageRange = {
+			languageId: languageId,
+			start,
+			end
+		}
+		target.push(lastLanguageRange);
+	}
+	return lastLanguageRange
+}
 
 function getLanguageRanges(document: TextDocument, regions: EmbeddedRegion[], range: Range): LanguageRange[] {
 	let result: LanguageRange[] = [];
-	let currentPos = range ? range.start : Position.create(0, 0);
-	let currentOffset = range ? document.offsetAt(range.start) : 0;
-	let endOffset = range ? document.offsetAt(range.end) : document.getText().length;
+	let currentStart = range ? document.offsetAt(range.start) : 0;
+	let currentEnd = range ? document.offsetAt(range.end) : document.getText().length;
+	let lastLanguageRange: LanguageRange = {languageId: null, start: null, end: null}
 	for (let region of regions) {
-		if (region.end > currentOffset && region.start < endOffset) {
-			let start = Math.max(region.start, currentOffset);
+		if (region.start < currentEnd && region.end > currentStart) {
+			let start = Math.max(region.start, currentStart);
 			let startPos = document.positionAt(start);
-			if (currentOffset < region.start) {
-				result.push({
-					start: currentPos,
-					end: startPos,
-					languageId: 'vue'
-				});
-			}
-			let end = Math.min(region.end, endOffset);
+			let end = Math.min(region.end, currentEnd);
 			let endPos = document.positionAt(end);
 			if (end > region.start) {
-				result.push({
-					start: startPos,
-					end: endPos,
-					languageId: region.languageId,
-					attributeValue: region.attributeValue
-				});
+				lastLanguageRange = pushLanguageRange(result, lastLanguageRange, region.firstLanguageId, startPos, endPos);
 			}
-			currentOffset = end;
-			currentPos = endPos;
+			currentStart = end;
 		}
-	}
-	if (currentOffset < endOffset) {
-		let endPos = range ? range.end : document.positionAt(endOffset);
-		result.push({
-			start: currentPos,
-			end: endPos,
-			languageId: 'vue'
-		});
 	}
 	return result;
 }
 
-function getLanguagesInDocument(document: TextDocument, regions: EmbeddedRegion[]): string[] {
+function getLanguagesInDocument(_: TextDocument, regions: EmbeddedRegion[]): string[] {
 	let result = [];
 	for (let region of regions) {
-		if (region.languageId && result.indexOf(region.languageId) === -1) {
-			result.push(region.languageId);
-			// if (result.length === 3) {
-			// 	return result;
-			// }
+		if (region.lastLanguageId && result.indexOf(region.lastLanguageId) === -1) {
+			result.push(region.lastLanguageId);
 		}
 	}
-	result.push('vue');
 	return result;
 }
 
 function getLanguageAtPosition(document: TextDocument, regions: EmbeddedRegion[], position: Position): string {
 	let offset = document.offsetAt(position);
 	for (let region of regions) {
-		if (region.start <= offset) {
-			if (offset <= region.end) {
-				return region.languageId;
-			}
-		} else {
-			// break;
+		if (offset >= region.start && offset <= region.end) {
+			return region.lastLanguageId;
 		}
 	}
 	return 'vue';
 }
 
-function getEmbeddedDocument(document: TextDocument, contents: EmbeddedRegion[], languageId: string, ignoreAttributeValues: boolean): TextDocument {
-	let currentPos = 0;
+function addRegionCode(region: EmbeddedRegion, result: string, oldContent: string) {
+	if (region.lastLanguageId !== region.firstLanguageId) {
+		switch (region.lastLanguageId) {
+			case 'css':
+			{
+				const content = `{${oldContent.substring(region.start + 1, region.end - 1)}}`
+				const prefix = CSS_STYLE_RULE
+				const len = prefix.length
+				const regExp = new RegExp(`(?=\\n {0,${len - 1}}$)| {${len}}$`)
+				return result.replace(regExp, prefix) + content;
+			}
+		}
+	}
+	return result + oldContent.substring(region.start, region.end)
+}
+
+function getEmbeddedDocument(document: TextDocument, contents: EmbeddedRegion[], languageId: string, isTopLevel: boolean = true): TextDocument {
 	let oldContent = document.getText();
 	let result = '';
-	let lastSuffix = '';
-	for (let c of contents) {
-		if (c.languageId === languageId && (!ignoreAttributeValues || !c.attributeValue)) {
-			result = substituteWithWhitespace(result, currentPos, c.start, oldContent, lastSuffix, getPrefix(c));
-			result += oldContent.substring(c.start, c.end);
-			currentPos = c.end;
-			lastSuffix = getSuffix(c);
+	let line = 0;
+	let character = 0
+	for (let region of contents) {
+		if (languageId === (isTopLevel ? region.firstLanguageId : region.lastLanguageId)) {
+			let ps = document.positionAt(region.start)
+			let pe = document.positionAt(region.end)
+			if (ps.line === line) {
+				result += repeat(' ', ps.character - character)
+			} else {
+				result += repeat('\n', ps.line - line)
+				result += repeat(' ', ps.character)
+			}
+			result = addRegionCode(region, result, oldContent)
+			line = pe.line
+			character = pe.character
 		}
 	}
-	result = substituteWithWhitespace(result, currentPos, oldContent.length, oldContent, lastSuffix, '');
 	return TextDocument.create(document.uri, languageId, document.version, result);
-}
-
-function getPrefix(c: EmbeddedRegion) {
-	if (c.attributeValue) {
-		switch (c.languageId) {
-			case 'css': return CSS_STYLE_RULE + '{';
-		}
-	}
-	return '';
-}
-function getSuffix(c: EmbeddedRegion) {
-	if (c.attributeValue) {
-		switch (c.languageId) {
-			case 'css': return '}';
-			case 'javascript': return ';';
-		}
-	}
-	return '';
-}
-
-function substituteWithWhitespace(result: string, start: number, end: number, oldContent: string, before: string, after: string) {
-	let accumulatedWS = 0;
-	result += before;
-	for (let i = start + before.length; i < end; i++) {
-		let ch = oldContent[i];
-		if (ch === '\n' || ch === '\r') {
-			// only write new lines, skip the whitespace
-			accumulatedWS = 0;
-			result += ch;
-		} else {
-			accumulatedWS++;
-		}
-	}
-	result = append(result, ' ', accumulatedWS - after.length);
-	result += after;
-	return result;
-}
-
-function append(result: string, str: string, n: number): string {
-	while (n > 0) {
-		if (n & 1) {
-			result += str;
-		}
-		n >>= 1;
-		str += str;
-	}
-	return result;
-}
-
-function getAttributeLanguage(attributeName: string): string {
-	let match = attributeName.match(/^(style)$|^(on\w+)$/i);
-	if (!match) {
-		return null;
-	}
-	return match[1] ? 'css' : 'javascript';
 }

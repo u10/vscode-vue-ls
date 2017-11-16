@@ -6,6 +6,7 @@
   "typescript.tsdk": "./node_modules/typescript/lib",
   "typescript.tsc.autoDetect": "off",
   "files.exclude": {
+    "client/out/**": true,
     "client/server/**": true
   }
 }

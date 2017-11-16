@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "diff": "^3.4.0",
+    "lodash.get": "^4.4.2",
     "prettier": "^1.7.4",
     "resolve": "^1.5.0",
     "vscode-css-languageservice": "^2.1.11",
@@ -21,5 +22,11 @@
     "installServer": "installServerIntoExtension ../client ./package.json ./tsconfig.json",
     "compile": "installServerIntoExtension ../client ./package.json ./tsconfig.json && tsc -p .",
     "watch": "installServerIntoExtension ../client ./package.json ./tsconfig.json && tsc -w -p ."
+  },
+  "devDependencies": {
+    "@types/diff": "^3.2.2",
+    "@types/lodash.get": "^4.4.3",
+    "@types/prettier": "^1.8.0",
+    "@types/resolve": "0.0.4"
   }
 }

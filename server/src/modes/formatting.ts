@@ -4,11 +4,34 @@
  *--------------------------------------------------------------------------------------------*/
 'use strict';
 
-import { applyEdits } from '../utils/edits';
 import { TextDocument, Range, TextEdit, FormattingOptions, Position } from 'vscode-languageserver-types';
 import { LanguageModes, Settings } from './languageModes';
 import { pushAll } from '../utils/arrays';
 import { isEOL } from '../utils/strings';
+import * as JsDiff from 'diff'
+import * as prettier from 'prettier'
+
+const prettierOpts: {[id: string]: prettier.Options} = {
+	'javascript': {
+		parser: 'babylon',
+		semi: false,
+		singleQuote: true
+	},
+	'typescript': {
+		parser: 'typescript',
+		semi: false,
+		singleQuote: true
+	},
+	'css': {
+		parser: 'css'
+	},
+	'less': {
+		parser: 'less'
+	},
+	'scss': {
+		parser: 'scss'
+	}
+}
 
 export function format(languageModes: LanguageModes, document: TextDocument, formatRange: Range, formattingOptions: FormattingOptions, settings: Settings, enabledModes: { [mode: string]: boolean }) {
 	let result: TextEdit[] = [];
@@ -32,61 +55,41 @@ export function format(languageModes: LanguageModes, document: TextDocument, for
 	//  - correct initial indent for embedded formatters
 	//  - no worrying of overlapping edits
 
-	// make sure we start in html
 	let allRanges = languageModes.getModesInRange(document, formatRange);
+
 	let i = 0;
 	let startPos = formatRange.start;
-	while (i < allRanges.length && allRanges[i].mode.getId() !== 'html') {
+	while (i < allRanges.length) {
 		let range = allRanges[i];
-		if (!range.attributeValue && range.mode.format) {
-			let edits = range.mode.format(document, Range.create(startPos, range.end), formattingOptions, settings);
-			pushAll(result, edits);
+		const languageId = range.mode.getId()
+		if (enabledModes[languageId]) {
+			if (range.mode.format) {
+				let edits = range.mode.format(document, Range.create(startPos, range.end), formattingOptions, settings);
+				pushAll(result, edits);
+			} else if (prettierOpts[languageId]) {
+				let start = document.offsetAt(range.start);
+				let end = document.offsetAt(range.end);
+				const textDocContent = document.getText().substring(start, end)
+				const edits = []
+				const diff = JsDiff.diffChars(textDocContent, `\n  ${prettier.format(textDocContent, prettierOpts[languageId]).replace(/\n$/, '').replace(/\n/g, '\n  ')}\n`)
+				let offset = start
+				for (let item of diff) {
+					if (item.added || item.removed) {
+						edits.push({
+							range: {
+								start: document.positionAt(offset),
+								end: document.positionAt(offset + (item.added ? 0 : item.count))
+							},
+							newText: item.removed ? '' : item.value
+						})
+					}
+					if (!item.added) {offset += item.count}
+				}
+				pushAll(result, edits);
+			}
 		}
 		startPos = range.end;
 		i++;
 	}
-	if (i === allRanges.length) {
-		return result;
-	}
-	// modify the range
-	formatRange = Range.create(startPos, formatRange.end);
-
-	// perform a html format and apply changes to a new document
-	let htmlMode = languageModes.getMode('html');
-	let htmlEdits = htmlMode.format(document, formatRange, formattingOptions, settings);
-	let htmlFormattedContent = applyEdits(document, htmlEdits);
-	let newDocument = TextDocument.create(document.uri + '.tmp', document.languageId, document.version, htmlFormattedContent);
-	try {
-		// run embedded formatters on html formatted content: - formatters see correct initial indent
-		let afterFormatRangeLength = document.getText().length - document.offsetAt(formatRange.end); // length of unchanged content after replace range
-		let newFormatRange = Range.create(formatRange.start, newDocument.positionAt(htmlFormattedContent.length - afterFormatRangeLength));
-		let embeddedRanges = languageModes.getModesInRange(newDocument, newFormatRange);
-
-		let embeddedEdits: TextEdit[] = [];
-
-		for (let r of embeddedRanges) {
-			let mode = r.mode;
-			if (mode && mode.format && enabledModes[mode.getId()] && !r.attributeValue) {
-				let edits = mode.format(newDocument, r, formattingOptions, settings);
-				for (let edit of edits) {
-					embeddedEdits.push(edit);
-				}
-			}
-		};
-
-		if (embeddedEdits.length === 0) {
-			pushAll(result, htmlEdits);
-			return result;
-		}
-
-		// apply all embedded format edits and create a single edit for all changes
-		let resultContent = applyEdits(newDocument, embeddedEdits);
-		let resultReplaceText = resultContent.substring(document.offsetAt(formatRange.start), resultContent.length - afterFormatRangeLength);
-
-		result.push(TextEdit.replace(formatRange, resultReplaceText));
-		return result;
-	} finally {
-		languageModes.onDocumentRemoved(newDocument);
-	}
-
+	return result;
 }

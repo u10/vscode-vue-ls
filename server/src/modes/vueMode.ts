@@ -5,18 +5,14 @@
 'use strict';
 
 import { TextDocument } from 'vscode-languageserver-types';
-import { LanguageMode, Settings } from './languageModes';
+import { LanguageMode } from './languageModes';
 
 export function getVueMode(): LanguageMode {
-	let globalSettings: Settings = {};
 	return {
 		getId() {
 			return 'vue';
 		},
-		configure(options: any) {
-			globalSettings = options;
-		},
-		onDocumentRemoved(document: TextDocument) {},
+		onDocumentRemoved(_: TextDocument) {},
 		dispose() {}
 	};
 };

@@ -5,26 +5,25 @@
 'use strict';
 
 import { LanguageModelCache, getLanguageModelCache } from '../languageModelCache';
-import { SymbolInformation, SymbolKind, CompletionItem, Location, SignatureHelp, SignatureInformation, ParameterInformation, Definition, TextEdit, TextDocument, Diagnostic, DiagnosticSeverity, Range, CompletionItemKind, Hover, MarkedString, DocumentHighlight, DocumentHighlightKind, CompletionList, Position, FormattingOptions } from 'vscode-languageserver-types';
-import { LanguageMode, Settings } from './languageModes';
-import { getWordAtText, startsWith, isWhitespaceOnly, repeat } from '../utils/strings';
-import { HTMLDocumentRegions } from './embeddedSupport';
+import { SymbolInformation, SymbolKind, CompletionItem, Location, SignatureHelp, SignatureInformation, ParameterInformation, Definition, TextEdit, TextDocument, Diagnostic, DiagnosticSeverity, Range, CompletionItemKind, Hover, MarkedString, DocumentHighlight, DocumentHighlightKind, CompletionList, Position } from 'vscode-languageserver-types';
+import { LanguageMode } from './languageModes';
+import { getWordAtText, startsWith } from '../utils/strings';
+import { VueDocumentRegions } from './embeddedSupport';
+import get = require('lodash.get')
 import * as fs from 'fs'
 import {sync as requireResolveSync} from 'resolve'
 import { join, resolve } from 'path';
-
-import * as prettier from 'prettier';
 
 const FILE_NAME = 'vscode://javascript/1';  // the same 'file' is used for all contents
 const JQUERY_D_TS = join(__dirname, '../../lib/jquery.d.ts');
 
 const JS_WORD_REGEX = /(-?\d*\.\d\w*)|([^\`\~\!\@\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g;
 
-export function getJavascriptMode(env, documentRegions: LanguageModelCache<HTMLDocumentRegions>): LanguageMode {
+export function getJavascriptMode(env: {appRoot: string}, documentRegions: LanguageModelCache<VueDocumentRegions>): LanguageMode {
 	const ts = require(resolve(env.appRoot, 'extensions/node_modules/typescript'))
 	const jsDocuments = getLanguageModelCache<TextDocument>(10, 60, document => documentRegions.get(document).getEmbeddedDocument('javascript'));
 
-	let compilerOptions/* : ts.CompilerOptions */ = { allowNonTsExtensions: true, allowJs: true, lib: ['lib.es6.d.ts'], target: ts.ScriptTarget.Latest, moduleResolution: ts.ModuleResolutionKind.Classic };
+	let compilerOptions: ts.CompilerOptions = { allowNonTsExtensions: true, allowJs: true, lib: ['lib.es6.d.ts'], target: ts.ScriptTarget.Latest, moduleResolution: ts.ModuleResolutionKind.Classic };
 	let currentTextDocument: TextDocument;
 	let scriptFileVersion: number = 0;
 	function updateCurrentTextDocument(doc: TextDocument) {
@@ -33,7 +32,7 @@ export function getJavascriptMode(env, documentRegions: LanguageModelCache<HTMLD
 			scriptFileVersion++;
 		}
 	}
-	const host/* : ts.LanguageServiceHost */ = {
+	const host: ts.LanguageServiceHost = {
 		getCompilationSettings: () => compilerOptions,
 		getScriptFileNames: () => [FILE_NAME, JQUERY_D_TS],
 		getScriptKind: () => ts.ScriptKind.JS,
@@ -61,16 +60,10 @@ export function getJavascriptMode(env, documentRegions: LanguageModelCache<HTMLD
 		getCurrentDirectory: () => '',
 		getDefaultLibFileName: (options) => ts.getDefaultLibFilePath(options)
 	};
-	let jsLanguageService = ts.createLanguageService(host);
-
-	let globalSettings: Settings = {};
-
+	let jsLanguageService: ts.LanguageService = ts.createLanguageService(host);
 	return {
 		getId() {
 			return 'javascript';
-		},
-		configure(options: any) {
-			globalSettings = options;
 		},
 		doValidation(document: TextDocument): Diagnostic[] {
 			updateCurrentTextDocument(document);
@@ -188,8 +181,10 @@ export function getJavascriptMode(env, documentRegions: LanguageModelCache<HTMLD
 			let items = jsLanguageService.getNavigationBarItems(FILE_NAME);
 			if (items) {
 				let result: SymbolInformation[] = [];
-				let existing = {};
-				let collectSymbols = (item/*: ts.NavigationBarItem*/, containerLabel?: string) => {
+				let existing: {
+					[key: string]: boolean
+				} = {};
+				let collectSymbols = (item: ts.NavigationBarItem, containerLabel?: string) => {
 					let sig = item.text + item.kind + item.spans[0].start;
 					if (item.kind !== 'script' && !existing[sig]) {
 						let symbol: SymbolInformation = {
@@ -240,7 +235,7 @@ export function getJavascriptMode(env, documentRegions: LanguageModelCache<HTMLD
 				if (filePath) {
 					const basedir = resolve(decodeURIComponent(document.uri).substr(7), '..').replace(/^\w+:\\/, '')
 					let searchDir = basedir
-					let opts = {}
+					let opts: IVueLsRc = {}
 					while (true) {
 						let rcFilePath = resolve(searchDir, '.vuelsrc')
 						if (fs.existsSync(rcFilePath)) {
@@ -254,10 +249,10 @@ export function getJavascriptMode(env, documentRegions: LanguageModelCache<HTMLD
 						searchDir = parent
 					}
 					try {
-						let alias = opts && opts['resolve'] && opts['resolve'].alias || {}
+						let alias = get(opts, 'resolve.alias', {})
 						for (let key in alias) {
 							if (filePath.substr(0, key.length) === key) {
-								filePath = alias[key] + filePath.substr(key.length)
+								filePath = join(alias[key], filePath.substr(key.length))
 								break;
 							}
 						}
@@ -287,40 +282,6 @@ export function getJavascriptMode(env, documentRegions: LanguageModelCache<HTMLD
 						range: convertRange(currentTextDocument, d.textSpan)
 					};
 				});
-			}
-			return null;
-		},
-		format(document: TextDocument, range: Range, formatParams: FormattingOptions, settings: Settings = globalSettings): TextEdit[] {
-			currentTextDocument = documentRegions.get(document).getEmbeddedDocument('javascript', true);
-			scriptFileVersion++;
-			let formatterSettings = settings && settings.javascript && settings.javascript.format;
-			let initialIndentLevel = computeInitialIndent(document, range, formatParams);
-			let formatSettings = convertOptions(ts, formatParams, formatterSettings, initialIndentLevel + 1);
-			let start = currentTextDocument.offsetAt(range.start);
-			let end = currentTextDocument.offsetAt(range.end);
-			let lastLineRange = null;
-			if (range.end.character === 0 || isWhitespaceOnly(currentTextDocument.getText().substr(end - range.end.character, range.end.character))) {
-				end -= range.end.character;
-				lastLineRange = Range.create(Position.create(range.end.line, 0), range.end);
-			}
-			let edits = jsLanguageService.getFormattingEditsForRange(FILE_NAME, start, end, formatSettings);
-			if (edits) {
-				let result = [];
-				for (let edit of edits) {
-					if (edit.span.start >= start && edit.span.start + edit.span.length <= end) {
-						result.push({
-							range: convertRange(currentTextDocument, edit.span),
-							newText: edit.newText
-						});
-					}
-				}
-				if (lastLineRange) {
-					result.push({
-						range: lastLineRange,
-						newText: generateIndent(initialIndentLevel, formatParams)
-					});
-				}
-				return result;
 			}
 			return null;
 		},
@@ -398,55 +359,4 @@ function convertSymbolKind(kind: string): SymbolKind {
 			return SymbolKind.Property;
 	}
 	return SymbolKind.Variable;
-}
-
-function convertOptions(ts, options: FormattingOptions, formatSettings: any, initialIndentLevel: number)/* : ts.FormatCodeOptions */ {
-	return {
-		ConvertTabsToSpaces: options.insertSpaces,
-		TabSize: options.tabSize,
-		IndentSize: options.tabSize,
-		IndentStyle: ts.IndentStyle.Smart,
-		NewLineCharacter: '\n',
-		BaseIndentSize: options.tabSize * initialIndentLevel,
-		InsertSpaceAfterCommaDelimiter: Boolean(!formatSettings || formatSettings.insertSpaceAfterCommaDelimiter),
-		InsertSpaceAfterSemicolonInForStatements: Boolean(!formatSettings || formatSettings.insertSpaceAfterSemicolonInForStatements),
-		InsertSpaceBeforeAndAfterBinaryOperators: Boolean(!formatSettings || formatSettings.insertSpaceBeforeAndAfterBinaryOperators),
-		InsertSpaceAfterKeywordsInControlFlowStatements: Boolean(!formatSettings || formatSettings.insertSpaceAfterKeywordsInControlFlowStatements),
-		InsertSpaceAfterFunctionKeywordForAnonymousFunctions: Boolean(!formatSettings || formatSettings.insertSpaceAfterFunctionKeywordForAnonymousFunctions),
-		InsertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis: Boolean(formatSettings && formatSettings.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis),
-		InsertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets: Boolean(formatSettings && formatSettings.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets),
-		InsertSpaceAfterOpeningAndBeforeClosingNonemptyBraces: Boolean(formatSettings && formatSettings.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces),
-		InsertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces: Boolean(formatSettings && formatSettings.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces),
-		PlaceOpenBraceOnNewLineForControlBlocks: Boolean(formatSettings && formatSettings.placeOpenBraceOnNewLineForFunctions),
-		PlaceOpenBraceOnNewLineForFunctions: Boolean(formatSettings && formatSettings.placeOpenBraceOnNewLineForControlBlocks)
-	};
-}
-
-function computeInitialIndent(document: TextDocument, range: Range, options: FormattingOptions) {
-	let lineStart = document.offsetAt(Position.create(range.start.line, 0));
-	let content = document.getText();
-
-	let i = lineStart;
-	let nChars = 0;
-	let tabSize = options.tabSize || 4;
-	while (i < content.length) {
-		let ch = content.charAt(i);
-		if (ch === ' ') {
-			nChars++;
-		} else if (ch === '\t') {
-			nChars += tabSize;
-		} else {
-			break;
-		}
-		i++;
-	}
-	return Math.floor(nChars / tabSize);
-}
-
-function generateIndent(level: number, options: FormattingOptions) {
-	if (options.insertSpaces) {
-		return repeat(' ', level * options.tabSize);
-	} else {
-		return repeat('\t', level);
-	}
 }

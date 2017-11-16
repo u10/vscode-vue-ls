@@ -18,9 +18,9 @@ import { DocumentColorRequest, DocumentColorParams, ColorPresentationRequest, Co
 import * as nls from 'vscode-nls';
 let localize = nls.loadMessageBundle();
 
-// namespace TagCloseRequest {
-// 	export const type: RequestType<TextDocumentPositionParams, string, any, any> = new RequestType('html/tag');
-// }
+namespace TagCloseRequest {
+	export const type: RequestType<TextDocumentPositionParams, string, any, any> = new RequestType('html/tag');
+}
 
 interface IPackageInfo {
 	name: string;
@@ -38,7 +38,7 @@ export function activate(context: ExtensionContext) {
 	}
 
 	// The server is implemented in node
-	let serverModule = context.asAbsolutePath(path.join('server', 'out', 'vueServerMain.js'));
+	let serverModule = context.asAbsolutePath(path.join('server', 'vueServerMain.js'));
 	// The debug options for the server
 	let debugOptions = { execArgv: ['--nolazy', '--inspect=6004'] };
 
@@ -50,18 +50,15 @@ export function activate(context: ExtensionContext) {
 	};
 
 	let documentSelector = ['vue'];
-	// 内嵌语言支持
-	let embeddedLanguages = { html: true, css: true, javascript: true };
 
 	// Options to control the language client
 	let clientOptions: LanguageClientOptions = {
 		documentSelector,
 		synchronize: {
-			configurationSection: ['vue', 'html', 'css', 'javascript'], // the settings to synchronize
+			configurationSection: ['vue-ls'], // the settings to synchronize
 		},
 		initializationOptions: {
-			env,
-			embeddedLanguages
+			env
 		}
 	};
 
@@ -72,42 +69,43 @@ export function activate(context: ExtensionContext) {
 	let disposable = client.start();
 	toDispose.push(disposable);
 	client.onReady().then(() => {
-		// disposable = languages.registerColorProvider(documentSelector, {
-		// 	provideDocumentColors(document: TextDocument): Thenable<ColorInformation[]> {
-		// 		let params: DocumentColorParams = {
-		// 			textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document)
-		// 		};
-		// 		return client.sendRequest(DocumentColorRequest.type, params).then(symbols => {
-		// 			return symbols.map(symbol => {
-		// 				let range = client.protocol2CodeConverter.asRange(symbol.range);
-		// 				let color = new Color(symbol.color.red, symbol.color.green, symbol.color.blue, symbol.color.alpha);
-		// 				return new ColorInformation(range, color);
-		// 			});
-		// 		});
-		// 	},
-		// 	provideColorPresentations(color, context): Thenable<ColorPresentation[]> {
-		// 		let params: ColorPresentationParams = {
-		// 			textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(context.document),
-		// 			colorInfo: { range: client.code2ProtocolConverter.asRange(context.range), color }
-		// 		};
-		// 		return client.sendRequest(ColorPresentationRequest.type, params).then(presentations => {
-		// 			return presentations.map(p => {
-		// 				let presentation = new ColorPresentation(p.label);
-		// 				presentation.textEdit = p.textEdit && client.protocol2CodeConverter.asTextEdit(p.textEdit);
-		// 				presentation.additionalTextEdits = p.additionalTextEdits && client.protocol2CodeConverter.asTextEdits(p.additionalTextEdits);
-		// 				return presentation;
-		// 			});
-		// 		});
-		// 	}
-		// });
-		// toDispose.push(disposable);
+		disposable = languages.registerColorProvider(documentSelector.concat(['css']), {
+			provideDocumentColors(document: TextDocument): Thenable<ColorInformation[]> {
+				let params: DocumentColorParams = {
+					textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document)
+				};
+				return client.sendRequest(DocumentColorRequest.type, params).then(symbols => {
+					return symbols.map(symbol => {
+						let range = client.protocol2CodeConverter.asRange(symbol.range);
+						let color = new Color(symbol.color.red, symbol.color.green, symbol.color.blue, symbol.color.alpha);
+						return new ColorInformation(range, color);
+					});
+				});
+			},
+			provideColorPresentations(color, context): Thenable<ColorPresentation[]> {
+				let params: ColorPresentationParams = {
+					textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(context.document),
+					range: client.code2ProtocolConverter.asRange(context.range),
+					color
+				};
+				return client.sendRequest(ColorPresentationRequest.type, params).then(presentations => {
+					return presentations.map(p => {
+						let presentation = new ColorPresentation(p.label);
+						presentation.textEdit = p.textEdit && client.protocol2CodeConverter.asTextEdit(p.textEdit);
+						presentation.additionalTextEdits = p.additionalTextEdits && client.protocol2CodeConverter.asTextEdits(p.additionalTextEdits);
+						return presentation;
+					});
+				});
+			}
+		});
+		toDispose.push(disposable);
 
-		// let tagRequestor = (document: TextDocument, position: Position) => {
-		// 	let param = client.code2ProtocolConverter.asTextDocumentPositionParams(document, position);
-		// 	return client.sendRequest(TagCloseRequest.type, param);
-		// };
-		// disposable = activateTagClosing(tagRequestor, { html: true }, 'vue.template.autoClosingTags');
-		// toDispose.push(disposable);
+		let tagRequestor = (document: TextDocument, position: Position) => {
+			let param = client.code2ProtocolConverter.asTextDocumentPositionParams(document, position);
+			return client.sendRequest(TagCloseRequest.type, param);
+		};
+		disposable = activateTagClosing(tagRequestor, { vue: true }, 'vue-ls.template.html.autoClosingTags');
+		toDispose.push(disposable);
 
 		disposable = client.onTelemetry(e => {
 			if (telemetryReporter) {
@@ -117,24 +115,24 @@ export function activate(context: ExtensionContext) {
 		toDispose.push(disposable);
 	});
 
-	// languages.setLanguageConfiguration('html', {
-	// 	indentationRules: {
-	// 		increaseIndentPattern: /<(?!\?|(?:area|base|br|col|frame|hr|html|img|input|link|meta|param)\b|[^>]*\/>)([-_\.A-Za-z0-9]+)(?=\s|>)\b[^>]*>(?!.*<\/\1>)|<!--(?!.*-->)|\{[^}"']*$/,
-	// 		decreaseIndentPattern: /^\s*(<\/(?!html)[-_\.A-Za-z0-9]+\b[^>]*>|-->|\})/
-	// 	},
-	// 	wordPattern: /(-?\d*\.\d\w*)|([^\`\~\!\@\$\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\s]+)/g,
-	// 	onEnterRules: [
-	// 		{
-	// 			beforeText: new RegExp(`<(?!(?:${EMPTY_ELEMENTS.join('|')}))([_:\\w][_:\\w-.\\d]*)([^/>]*(?!/)>)[^<]*$`, 'i'),
-	// 			afterText: /^<\/([_:\w][_:\w-.\d]*)\s*>$/i,
-	// 			action: { indentAction: IndentAction.IndentOutdent }
-	// 		},
-	// 		{
-	// 			beforeText: new RegExp(`<(?!(?:${EMPTY_ELEMENTS.join('|')}))(\\w[\\w\\d]*)([^/>]*(?!/)>)[^<]*$`, 'i'),
-	// 			action: { indentAction: IndentAction.Indent }
-	// 		}
-	// 	],
-	// });
+	languages.setLanguageConfiguration('html', {
+		indentationRules: {
+			increaseIndentPattern: /<(?!\?|(?:area|base|br|col|frame|hr|html|img|input|link|meta|param)\b|[^>]*\/>)([-_\.A-Za-z0-9]+)(?=\s|>)\b[^>]*>(?!.*<\/\1>)|<!--(?!.*-->)|\{[^}"']*$/,
+			decreaseIndentPattern: /^\s*(<\/(?!html)[-_\.A-Za-z0-9]+\b[^>]*>|-->|\})/
+		},
+		wordPattern: /(-?\d*\.\d\w*)|([^\`\~\!\@\$\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\s]+)/g,
+		onEnterRules: [
+			{
+				beforeText: new RegExp(`<(?!(?:${EMPTY_ELEMENTS.join('|')}))([_:\\w][_:\\w-.\\d]*)([^/>]*(?!/)>)[^<]*$`, 'i'),
+				afterText: /^<\/([_:\w][_:\w-.\d]*)\s*>$/i,
+				action: { indentAction: IndentAction.IndentOutdent }
+			},
+			{
+				beforeText: new RegExp(`<(?!(?:${EMPTY_ELEMENTS.join('|')}))(\\w[\\w\\d]*)([^/>]*(?!/)>)[^<]*$`, 'i'),
+				action: { indentAction: IndentAction.Indent }
+			}
+		],
+	});
 }
 
 function getPackageInfo(context: ExtensionContext): IPackageInfo {

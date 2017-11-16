@@ -41,7 +41,8 @@
           "patterns": [
             {
               "include": "text.slm"
-            }
+            },
+            {}
           ]
         }
       ]
@@ -77,7 +78,8 @@
           "patterns": [
             {
               "include": "text.jade"
-            }
+            },
+            {}
           ]
         }
       ]
@@ -113,7 +115,8 @@
           "patterns": [
             {
               "include": "#vue-html"
-            }
+            },
+            {}
           ]
         }
       ]
@@ -149,7 +152,8 @@
           "patterns": [
             {
               "include": "source.stylus"
-            }
+            },
+            {}
           ]
         }
       ]
@@ -225,7 +229,8 @@
             },
             {
               "include": "source.css.scss"
-            }
+            },
+            {}
           ]
         }
       ]
@@ -264,7 +269,8 @@
             },
             {
               "include": "source.css.scss"
-            }
+            },
+            {}
           ]
         }
       ]
@@ -379,7 +385,8 @@
           "patterns": [
             {
               "include": "source.coffee"
-            }
+            },
+            {}
           ]
         }
       ]
@@ -420,7 +427,8 @@
           "patterns": [
             {
               "include": "source.livescript"
-            }
+            },
+            {}
           ]
         }
       ]

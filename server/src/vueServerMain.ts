@@ -12,6 +12,7 @@ import { getLanguageModes, LanguageModes, Settings } from './modes/languageModes
 import { ConfigurationRequest, ConfigurationParams } from 'vscode-languageserver-protocol/lib/protocol.configuration.proposed';
 import { DocumentColorRequest, ServerCapabilities as CPServerCapabilities, ColorInformation, ColorPresentationRequest } from 'vscode-languageserver-protocol/lib/protocol.colorProvider.proposed';
 
+import get = require('lodash.get')
 import { format } from './modes/formatting';
 import { pushAll } from './utils/arrays';
 
@@ -58,8 +59,12 @@ function getDocumentSettings(textDocument: TextDocument, needsDocumentSettings: 
 		let promise = documentSettings[textDocument.uri];
 		if (!promise) {
 			let scopeUri = textDocument.uri;
-			let configRequestParam: ConfigurationParams = { items: [{ scopeUri, section: 'css' }, { scopeUri, section: 'vue' }, { scopeUri, section: 'javascript' }] };
-			promise = connection.sendRequest(ConfigurationRequest.type, configRequestParam).then(s => ({ css: s[0], vue: s[1], javascript: s[2] }));
+			let configRequestParam: ConfigurationParams = {
+				items: [
+					{ scopeUri, section: 'vue-ls' }
+				]
+			};
+			promise = connection.sendRequest(ConfigurationRequest.type, configRequestParam).then(s => ({ 'vue-ls': s[0] }));
 			documentSettings[textDocument.uri] = promise;
 		}
 		return promise;
@@ -73,8 +78,8 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 	let initializationOptions = params.initializationOptions;
 
 	workspacePath = params.rootPath;
-
-	languageModes = getLanguageModes(initializationOptions ? initializationOptions.embeddedLanguages : { css: true, javascript: true });
+	const env = initializationOptions.env
+	languageModes = getLanguageModes(env);
 	documents.onDidClose(e => {
 		languageModes.onDocumentRemoved(e.document);
 	});
@@ -83,7 +88,7 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 	});
 
 	function hasClientCapability(...keys: string[]) {
-		let c = params.capabilities;
+		let c: any= params.capabilities;
 		for (let i = 0; c && i < keys.length; i++) {
 			c = c[keys[i]];
 		}
@@ -99,7 +104,7 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 		completionProvider: clientSnippetSupport ? { resolveProvider: true, triggerCharacters: ['.', ':', '<', '"', '=', '/', '>'] } : null,
 		hoverProvider: true,
 		documentHighlightProvider: true,
-		documentRangeFormattingProvider: true, // false,
+		documentRangeFormattingProvider: false,
 		documentLinkProvider: { resolveProvider: false },
 		documentSymbolProvider: true,
 		definitionProvider: true,
@@ -127,7 +132,7 @@ connection.onDidChangeConfiguration((change) => {
 
 	// dynamically enable & disable the formatter
 	if (clientDynamicRegisterSupport) {
-		let enableFormatter = globalSettings && globalSettings.vue && globalSettings.vue.format && globalSettings.vue.format.enable;
+		let enableFormatter = get(globalSettings, 'vue-ls.format.enabled');
 		if (enableFormatter) {
 			if (!formatterRegistration) {
 				let documentSelector: DocumentSelector = [{ language: 'vue' }]; // don't register razor, the formatter does more harm than good
@@ -144,13 +149,13 @@ connection.onDidChangeConfiguration((change) => {
 let pendingValidationRequests: { [uri: string]: NodeJS.Timer } = {};
 const validationDelayMs = 200;
 
-// The content of a text document has changed. This event is emitted
-// when the text document first opened or when its content has changed.
+// 文档内容发生改变
 documents.onDidChangeContent(change => {
+	// 触发代码验证
 	triggerValidation(change.document);
 });
 
-// a document has closed: clear all diagnostics
+// 文档关闭时释放资源
 documents.onDidClose(event => {
 	cleanPendingValidation(event.document);
 	connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
@@ -173,11 +178,18 @@ function triggerValidation(textDocument: TextDocument): void {
 }
 
 function isValidationEnabled(languageId: string, settings: Settings = globalSettings) {
-	let validationSettings = settings && settings.vue && settings.vue.validate;
+	let validationSettings = get(settings, 'vue-ls.validate.enabled');
 	if (validationSettings) {
-		return languageId === 'css' && validationSettings.styles !== false || languageId === 'javascript' && validationSettings.scripts !== false;
+		switch (languageId) {
+			case 'css':
+			case 'less':
+			case 'scss':
+				return get(settings, `vue-ls.style.${languageId}.validate.enabled`)
+			case 'javascript':
+				return get(settings, `vue-ls.script.js.validate.enabled`)
+		}
 	}
-	return true;
+	return false;
 }
 
 async function validateTextDocument(textDocument: TextDocument) {
@@ -186,7 +198,7 @@ async function validateTextDocument(textDocument: TextDocument) {
 		let modes = languageModes.getAllModesInDocument(textDocument);
 		let settings = await getDocumentSettings(textDocument, () => modes.some(m => !!m.doValidation));
 		modes.forEach(mode => {
-			if (mode.doValidation) {
+			if (mode.doValidation && isValidationEnabled(mode.getId())) {
 				pushAll(diagnostics, mode.doValidation(textDocument, settings));
 			}
 		});
@@ -205,8 +217,10 @@ connection.onCompletion(async textDocumentPosition => {
 			connection.telemetry.logEvent({ key: 'vue.embbedded.complete', value: { languageId: mode.getId() } });
 		}
 		let settings = await getDocumentSettings(document, () => mode.doComplete.length > 2);
+		// 委托到相应模块的 doComplete
 		return mode.doComplete(document, textDocumentPosition.position, settings);
 	}
+	return null
 });
 
 connection.onCompletionResolve(item => {
@@ -215,44 +229,52 @@ connection.onCompletionResolve(item => {
 		let mode = languageModes.getMode(data.languageId);
 		let document = documents.get(data.uri);
 		if (mode && mode.doResolve && document) {
+			// 委托到相应模块的 doResolve
 			return mode.doResolve(document, item);
 		}
 	}
 	return item;
-	// return null
 });
 
+// 悬停处理
 connection.onHover(textDocumentPosition => {
 	let document = documents.get(textDocumentPosition.textDocument.uri);
 	let mode = languageModes.getModeAtPosition(document, textDocumentPosition.position);
 	if (mode && mode.doHover) {
+		// 委托到相应模块的 doHover
 		return mode.doHover(document, textDocumentPosition.position);
 	}
 	return null;
 });
 
+// 文字高亮处理
 connection.onDocumentHighlight(documentHighlightParams => {
 	let document = documents.get(documentHighlightParams.textDocument.uri);
 	let mode = languageModes.getModeAtPosition(document, documentHighlightParams.position);
 	if (mode && mode.findDocumentHighlight) {
+		// 委托到相应模块的 findDocumentHighlight
 		return mode.findDocumentHighlight(document, documentHighlightParams.position);
 	}
 	return [];
 });
 
+// 定义追踪
 connection.onDefinition(definitionParams => {
 	let document = documents.get(definitionParams.textDocument.uri);
 	let mode = languageModes.getModeAtPosition(document, definitionParams.position);
 	if (mode && mode.findDefinition) {
+		// 委托到相应模块的 findDefinition
 		return mode.findDefinition(document, definitionParams.position);
 	}
 	return [];
 });
 
+// 引用追踪
 connection.onReferences(referenceParams => {
 	let document = documents.get(referenceParams.textDocument.uri);
 	let mode = languageModes.getModeAtPosition(document, referenceParams.position);
 	if (mode && mode.findReferences) {
+		// 委托到相应模块的 findReferences
 		return mode.findReferences(document, referenceParams.position);
 	}
 	return [];
@@ -268,20 +290,23 @@ connection.onSignatureHelp(signatureHelpParms => {
 });
 
 connection.onDocumentRangeFormatting(async formatParams => {
-	let document = documents.get(formatParams.textDocument.uri);
+	const document = documents.get(formatParams.textDocument.uri);
 	let settings = await getDocumentSettings(document, () => true);
 	if (!settings) {
 		settings = globalSettings;
 	}
-	let unformattedTags: string = settings && settings.vue && settings.vue.format && settings.vue.format.unformatted || '';
-	let enabledModes = {
-		template: !unformattedTags.match(/\btemplate\b/),
-		css: !unformattedTags.match(/\bstyle\b/),
-		javascript: !unformattedTags.match(/\bscript\b/)
+	const enabledModes = {
+		html: get(settings, 'vue-ls.template.html.format.enabled'),
+		css: get(settings, 'vue-ls.style.css.format.enabled'),
+		less: get(settings, 'vue-ls.style.less.format.enabled'),
+		scss: get(settings, 'vue-ls.style.scss.format.enabled'),
+		javascript: get(settings, 'vue-ls.script.js.format.enabled'),
+		typecript: get(settings, 'vue-ls.script.ts.format.enabled')
 	};
 	return format(languageModes, document, formatParams.range, formatParams.options, settings, enabledModes);
 });
 
+// 文档中的链接处理
 connection.onDocumentLinks(documentLinkParam => {
 	let document = documents.get(documentLinkParam.textDocument.uri);
 	let documentContext: DocumentContext = {
@@ -299,23 +324,27 @@ connection.onDocumentLinks(documentLinkParam => {
 	let links: DocumentLink[] = [];
 	languageModes.getAllModesInDocument(document).forEach(m => {
 		if (m.findDocumentLinks) {
+			// 委托到相应模块的 findDocumentLinks
 			pushAll(links, m.findDocumentLinks(document, documentContext));
 		}
 	});
 	return links;
 });
 
+// 文档中的符号处理
 connection.onDocumentSymbol(documentSymbolParms => {
 	let document = documents.get(documentSymbolParms.textDocument.uri);
 	let symbols: SymbolInformation[] = [];
 	languageModes.getAllModesInDocument(document).forEach(m => {
 		if (m.findDocumentSymbols) {
+			// 委托到相应模块的 findDocumentSymbols
 			pushAll(symbols, m.findDocumentSymbols(document));
 		}
 	});
 	return symbols;
 });
 
+// 颜色指示器
 connection.onRequest(DocumentColorRequest.type, params => {
 	let infos: ColorInformation[] = [];
 	let document = documents.get(params.textDocument.uri);
@@ -332,14 +361,15 @@ connection.onRequest(DocumentColorRequest.type, params => {
 connection.onRequest(ColorPresentationRequest.type, params => {
 	let document = documents.get(params.textDocument.uri);
 	if (document) {
-		let mode = languageModes.getModeAtPosition(document, params.colorInfo.range.start);
+		let mode = languageModes.getModeAtPosition(document, params.range.start);
 		if (mode && mode.getColorPresentations) {
-			return mode.getColorPresentations(document, params.colorInfo);
+			return mode.getColorPresentations(document, {color: params.color, range: params.range});
 		}
 	}
 	return [];
 });
 
+// 标签自动闭合
 connection.onRequest(TagCloseRequest.type, params => {
 	let document = documents.get(params.textDocument.uri);
 	if (document) {
