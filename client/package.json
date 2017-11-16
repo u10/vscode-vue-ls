@@ -4,6 +4,19 @@
   "publisher": "vaniship",
   "description": "A Vue Language Service Extension",
   "icon": "asset/vue.png",
+  "keywords": [
+		"vue",
+    "vue 2",
+    "sfc",
+    "language",
+		"language service",
+		"highlight",
+	  "format"
+  ],
+	"categories": [
+    "Languages",
+    "Formatters"
+	],
   "repository": {
     "type": "git",
     "url": "https://github.com/u10/vscode-vue-ls.git"
