@@ -23,7 +23,7 @@ This extension adds Vue Language Service into Visual Studio Code.
 * script
   * javascript
 
-![scope](asset/scope.gif)
+![scope](../asset/scope.gif)
 
 ## Support Code Format
 
@@ -36,7 +36,7 @@ This extension adds Vue Language Service into Visual Studio Code.
 
 ## Support JavaScript import/require file link
 
-![file link](asset/path-alias.gif)
+![file link](../asset/path-alias.gif)
 
 ## To support file path alias
 
