@@ -301,7 +301,7 @@ connection.onDocumentRangeFormatting(async formatParams => {
 		less: get(settings, 'vue-ls.style.less.format.enabled'),
 		scss: get(settings, 'vue-ls.style.scss.format.enabled'),
 		javascript: get(settings, 'vue-ls.script.js.format.enabled'),
-		typecript: get(settings, 'vue-ls.script.ts.format.enabled')
+		typescript: get(settings, 'vue-ls.script.ts.format.enabled')
 	};
 	return format(languageModes, document, formatParams.range, formatParams.options, settings, enabledModes);
 });

@@ -25,6 +25,15 @@ This extension adds Vue Language Service into Visual Studio Code.
 
 ![scope](asset/scope.gif)
 
+## Support Code Format
+
+* html
+* javascript
+* typescript
+* css
+* less
+* scss
+
 ## Support JavaScript import/require file link
 
 ![file link](asset/path-alias.gif)

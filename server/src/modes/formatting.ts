@@ -8,34 +8,34 @@ import { TextDocument, Range, TextEdit, FormattingOptions, Position } from 'vsco
 import { LanguageModes, Settings } from './languageModes';
 import { pushAll } from '../utils/arrays';
 import { isEOL } from '../utils/strings';
+import get = require('lodash.get')
 import * as JsDiff from 'diff'
 import * as prettier from 'prettier'
 
-const prettierOpts: {[id: string]: prettier.Options} = {
-	'javascript': {
-		parser: 'babylon',
-		semi: false,
-		singleQuote: true
-	},
-	'typescript': {
-		parser: 'typescript',
-		semi: false,
-		singleQuote: true
-	},
-	'css': {
-		parser: 'css'
-	},
-	'less': {
-		parser: 'less'
-	},
-	'scss': {
-		parser: 'scss'
-	}
-}
-
 export function format(languageModes: LanguageModes, document: TextDocument, formatRange: Range, formattingOptions: FormattingOptions, settings: Settings, enabledModes: { [mode: string]: boolean }) {
-	let result: TextEdit[] = [];
+	const prettierOpts: {[id: string]: prettier.Options} = {
+		'javascript': {
+			parser: 'babylon',
+			semi: get(settings, 'vue-ls.script.js.format.semi'),
+			singleQuote: get(settings, 'vue-ls.script.js.format.singleQuote')
+		},
+		'typescript': {
+			parser: 'typescript',
+			semi: get(settings, 'vue-ls.script.ts.format.semi'),
+			singleQuote: get(settings, 'vue-ls.script.ts.format.singleQuote')
+		},
+		'css': {
+			parser: 'css'
+		},
+		'less': {
+			parser: 'less'
+		},
+		'scss': {
+			parser: 'scss'
+		}
+	}
 
+	let result: TextEdit[] = [];
 	let endPos = formatRange.end;
 	let endOffset = document.offsetAt(endPos);
 	let content = document.getText();
