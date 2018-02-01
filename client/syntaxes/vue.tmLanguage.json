@@ -518,6 +518,47 @@
       ]
     },
     {
+      "begin": "(<)([a-zA-Z0-9:-]+)\\b(?=[^>]*lang=(['\"]|)javascript\\3)([^>]*)(>)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.html"
+        },
+        "2": {
+          "name": "constant.character.escape"
+        },
+        "4": {
+          "patterns": [
+            {
+              "include": "#tag-stuff"
+            }
+          ]
+        },
+        "5": {
+          "name": "punctuation.definition.tag.end.html"
+        }
+      },
+      "end": "(<\\/)(\\2)(>)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.html"
+        },
+        "2": {
+          "name": "constant.character.escape"
+        },
+        "3": {
+          "name": "punctuation.definition.tag.end.html"
+        }
+      },
+      "name": "text.vue.script",
+      "contentName": "text.vue.script.js",
+      "patterns": [
+        {
+          "include": "source.js"
+        },
+        {}
+      ]
+    },
+    {
       "begin": "(<\/?)([a-zA-Z0-9:-]+)",
       "beginCaptures": {
         "1": {
