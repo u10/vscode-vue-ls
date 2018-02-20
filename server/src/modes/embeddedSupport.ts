@@ -25,8 +25,19 @@ export var CSS_STYLE_RULE = '__';
 
 interface EmbeddedRegion { firstLanguageId: string; lastLanguageId: string; start: number; end: number;};
 
+function getNodeModule (appRoot: string, moduleName: string) {
+	try {
+		return require(`${appRoot}/node_modules.asar/${moduleName}`);
+	} catch(err) {}
+	try {
+		return require(`${appRoot}/node_modules/${moduleName}`);
+	} catch(err) {}
+	throw new Error(`Can not find module: ${moduleName}`)
+}
+
 export function getDocumentRegions(env: {appRoot: string}, document: TextDocument): VueDocumentRegions {
-	const tm = require(path.resolve(env.appRoot, 'node_modules/vscode-textmate'))
+	const tm = getNodeModule(env.appRoot, 'vscode-textmate')
+
 	let regions: EmbeddedRegion[] = [];
 	let importedScripts: string[] = [];
 
