@@ -1,3 +1,10 @@
+## 0.1.3 (2018-02-20)
+
+### Bug Fixes
+
+* compatible with VSCode that uses ASAR ([c57e991](https://github.com/u10/vscode-vue-ls/commit/c57e991)), closes [#1](https://github.com/u10/vscode-vue-ls/issues/1)
+
+
 ## 0.1.2 (2018-02-01)
 
 
