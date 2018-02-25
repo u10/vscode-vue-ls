@@ -1,3 +1,11 @@
+## 0.1.4 (2018-02-24)
+
+### Bug Fixes
+
+* readme images path ([94d73f4](https://github.com/u10/vscode-vue-ls/commit/94d73f4))
+* readme images path ([827dcce](https://github.com/u10/vscode-vue-ls/commit/827dcce))
+
+
 ## 0.1.3 (2018-02-20)
 
 ### Bug Fixes

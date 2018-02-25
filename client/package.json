@@ -1,6 +1,6 @@
 {
   "name": "vue-ls",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "publisher": "vaniship",
   "description": "A Vue Language Service Extension",
   "icon": "asset/vue.png",
