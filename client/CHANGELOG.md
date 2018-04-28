@@ -1,3 +1,9 @@
+## 0.1.5 (2018-04-28)
+
+### Bug Fixes
+
+* compatible with VSCode 1.21+ ([0d0404e](https://github.com/u10/vscode-vue-ls/commit/0d0404e))
+
 ## 0.1.4 (2018-02-24)
 
 ### Bug Fixes
