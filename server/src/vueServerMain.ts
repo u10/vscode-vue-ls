@@ -12,6 +12,7 @@ import { getLanguageModes, LanguageModes, Settings } from './modes/languageModes
 import { ConfigurationRequest, ConfigurationParams } from 'vscode-languageserver-protocol/lib/protocol.configuration.proposed';
 import { DocumentColorRequest, ServerCapabilities as CPServerCapabilities, ColorInformation, ColorPresentationRequest } from 'vscode-languageserver-protocol/lib/protocol.colorProvider.proposed';
 
+import { patchAsarRequire } from './patch'
 import get = require('lodash.get')
 import { format } from './modes/formatting';
 import { pushAll } from './utils/arrays';
@@ -79,6 +80,7 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 
 	workspacePath = params.rootPath;
 	const env = initializationOptions.env
+	patchAsarRequire(env.appRoot)
 	languageModes = getLanguageModes(env);
 	documents.onDidClose(e => {
 		languageModes.onDocumentRemoved(e.document);
